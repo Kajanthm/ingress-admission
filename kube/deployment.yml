@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ingress-admission
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 2
+  template:
+    metadata:
+      labels:
+        name: ingress-admission
+      annotations:
+        build: "https://gitlab.digital.homeoffice.gov.uk/go/kube-ingress-control"
+        owner: "devops@digital.homeoffice.gov.uk"
+    spec:
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: "Exist"
+      containers:
+      - name: ingress-admission
+        image: quay.io/ukhomeofficedigital/ingress-admission:latest
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        env:
+        - name: TLS_CERT
+          value: /certs/server.crt
+        - name: TLS_KEY
+          value: /certs/server.key
+        - name: TLS_CA
+          value: /certs/ca.crt
+        ports:
+        - name: https
+          containerPort: 8443
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: https
+            scheme: HTTPS
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: https
+            scheme: HTTPS
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+          readOnly: true
+      volumes:
+      - name: certs
+        hostPath:
+          path: /srv/kubernetes
