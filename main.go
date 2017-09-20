@@ -53,13 +53,18 @@ func main() {
 			},
 			cli.StringFlag{
 				Name:   "tls-ca",
-				Usage:  "the path to a file containing the tls certificate of the certificate authority `PATH`",
+				Usage:  "the path to a file containing tls certificate for CA `PATH`",
 				EnvVar: "TLS_CA",
 			},
 			cli.BoolFlag{
 				Name:   "enable-client-tls",
-				Usage:  "indicate you wish to enable mutual tls for incoming requests, must be signed by ca `BOOL`",
+				Usage:  "enable mutual tls for incoming requests, must be signed by ca `BOOL`",
 				EnvVar: "ENABLE_CLIENT_TLS",
+			},
+			cli.BoolTFlag{
+				Name:   "enable-logging",
+				Usage:  "enable http logging on the service `BOOL`",
+				EnvVar: "ENABLE_LOGGING",
 			},
 			cli.BoolFlag{
 				Name:   "verbose",
@@ -72,6 +77,7 @@ func main() {
 			// @step: build the options
 			cfg := Config{
 				EnableClientTLS: c.Bool("enable-client-tls"),
+				EnableLogging:   c.Bool("enable-logging"),
 				Listen:          c.String("listen"),
 				TLSCA:           c.String("tls-ca"),
 				TLSCert:         c.String("tls-cert"),
@@ -85,14 +91,14 @@ func main() {
 			}
 
 			// @step: create the controller
-			ctl, err := newIngressAdmissionController(cfg)
+			ctl, err := newController(cfg)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "[error] unable to initialize controller, %s", err)
 				os.Exit(1)
 			}
 
 			// @step: start the service
-			if err := ctl.Run(); err != nil {
+			if err := ctl.run(); err != nil {
 				fmt.Fprintf(os.Stderr, "[error] unable to start controller, %s", err)
 				os.Exit(1)
 			}

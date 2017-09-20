@@ -1,4 +1,4 @@
-package: gitlab.digital.homeoffice.gov.uk/go/kube-ingress-control
+package: github.com/UKHomeOffice/ingress-admission
 import:
 - package: github.com/labstack/echo
   subpackages:

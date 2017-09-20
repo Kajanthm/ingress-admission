@@ -2,6 +2,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: ingress-admission
+  namespace: kube-system
 spec:
   replicas: 3
   strategy:
@@ -24,18 +25,21 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: "node-role.kubernetes.io/master"
-                operator: "Exist"
+              - key: 'kubernetes.io/role'
+                operator: In
+                values: [ master ]
+      serviceAccount: admission-ingress
       containers:
       - name: ingress-admission
-        image: quay.io/ukhomeofficedigital/ingress-admission:latest
+        image: quay.io/ukhomeofficedigital/ingress-admission:v0.0.1
+        imagePullPolicy: Always
         resources:
           limits:
             cpu: 200m
             memory: 128Mi
         env:
         - name: TLS_CERT
-          value: /certs/server.crt
+          value: /certs/server.cert
         - name: TLS_KEY
           value: /certs/server.key
         - name: TLS_CA

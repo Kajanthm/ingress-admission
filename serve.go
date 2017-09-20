@@ -28,7 +28,7 @@ import (
 )
 
 // reviewHandler is responsible for handling the incoming admission request review
-func (c *ingressController) reviewHandler(ctx echo.Context) error {
+func (c *controller) reviewHandler(ctx echo.Context) error {
 	// @step: we need to unmarshal the review
 	review, err := decodeAdmissionReview(ctx.Request().Body)
 	if err != nil {
@@ -50,12 +50,12 @@ func (c *ingressController) reviewHandler(ctx echo.Context) error {
 }
 
 // healthHandler is just a health endpoint for the kubelet to call
-func (c *ingressController) healthHandler(ctx echo.Context) error {
+func (c *controller) healthHandler(ctx echo.Context) error {
 	return ctx.String(http.StatusOK, "OK")
 }
 
 // versionHandler is responsible for handling the version handler
-func (c *ingressController) versionHandler(ctx echo.Context) error {
+func (c *controller) versionHandler(ctx echo.Context) error {
 	return ctx.String(http.StatusOK, Version)
 }
 

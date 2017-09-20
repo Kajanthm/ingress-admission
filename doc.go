@@ -18,9 +18,9 @@ package main
 
 const (
 	// AdmissionControllerName is the name we register as
-	AdmissionControllerName = "acp-io.ingress.control.homeoffice.gov.uk"
+	AdmissionControllerName = "ingress-admission.acp.homeoffice.gov.uk"
 	// DomainWhitelistAnnotation is the annotation which controls which domains you can use
-	DomainWhitelistAnnotation = "acp.io/homeoffice/ingress-domains"
+	DomainWhitelistAnnotation = "ingress-admission.acp.homeoffice.gov.uk/domains"
 )
 
 var (
@@ -42,6 +42,8 @@ type Config struct {
 	TLSCA string `yaml:"tls-ca"`
 	// EnableClientTLS indicates you want mutual tls
 	EnableClientTLS bool `yaml:"enable-client-tls"`
+	// EnableLogging indicates you want http logging
+	EnableLogging bool `yaml:"enable-logging"`
 	// Verbose indicates verbose logging
 	Verbose bool `yaml:"verbose"`
 }

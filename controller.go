@@ -30,58 +30,63 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// ingressController
-type ingressController struct {
+// controller
+type controller struct {
 	// client is the kubernetes client
 	client *kubernetes.Clientset
 	// engine the http server
 	engine *echo.Echo
-	// httpSvc the httpserver
-	httpSvc *http.Server
+	// config is the configuration for the service
+	config *Config
 }
 
-// newIngressAdmissionController creates, registers and starts the admission controller
-func newIngressAdmissionController(cfg Config) (*ingressController, error) {
-	log.Info("starting the ingress admission controller, version: %s, listen: %s", Version, cfg.Listen)
+// newController creates, registers and starts the admission controller
+func newController(cfg Config) (*controller, error) {
+	log.Infof("starting the ingress admission controller, version: %s, listen: %s", Version, cfg.Listen)
+	c := &controller{
+		config: &cfg,
+	}
+	// @step: create the http service
+	c.engine = echo.New()
+	c.engine.Use(middleware.Recover())
+	if cfg.EnableLogging {
+		c.engine.Use(middleware.Logger())
+	}
+	c.engine.GET("/review", c.reviewHandler)
+	c.engine.GET("/health", c.healthHandler)
+	c.engine.GET("/version", c.versionHandler)
 
-	c := &ingressController{}
+	return c, nil
+}
+
+// run start's the http service
+func (c *controller) run() error {
 	// @step: attempt to create a kubernetes client
 	client, err := getKubernetesClient()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	c.client = client
 
-	// @step: create the http service
-	e := echo.New()
-	e.Use(middleware.Recover())
-	e.Use(middleware.Logger())
-	e.GET("/review", c.reviewHandler)
-	e.GET("/health", c.healthHandler)
-	e.GET("/version", c.versionHandler)
-
 	// @step: configure the http server
-	tlsConfig, err := buildTLSConfig(cfg)
+	tlsConfig, err := buildTLSConfig(c.config)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	c.httpSvc = &http.Server{
-		Addr:         cfg.Listen,
-		Handler:      e,
+
+	// @step: create the http service
+	hs := &http.Server{
+		Addr:         c.config.Listen,
+		Handler:      c.engine,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		IdleTimeout:  5 * time.Second,
 		TLSConfig:    tlsConfig,
 	}
 
-	return c, nil
-}
-
-// Run start's the http service
-func (c *ingressController) Run() error {
 	// @step: start the http service
 	go func() {
-		if err := c.engine.StartServer(c.httpSvc); err != nil {
+		if err := c.engine.StartServer(hs); err != nil {
 			log.WithFields(log.Fields{
 				"error": err.Error(),
 			}).Fatal("unable to create the http service")
@@ -92,7 +97,7 @@ func (c *ingressController) Run() error {
 }
 
 // buildTLSConfig builds the TLS configuration from the options
-func buildTLSConfig(cfg Config) (*tls.Config, error) {
+func buildTLSConfig(cfg *Config) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
 		PreferServerCipherSuites: true,

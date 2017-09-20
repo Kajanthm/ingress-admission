@@ -15,3 +15,29 @@ limitations under the License.
 */
 
 package main
+
+import (
+	"net/http"
+	"testing"
+)
+
+func TestVersionHandler(t *testing.T) {
+	requests := []request{
+		{
+			URI:             "/version",
+			ExpectedCode:    http.StatusOK,
+			ExpectedContent: Version,
+		},
+	}
+	newFakeController().runTests(t, requests)
+}
+
+func TestHealthHandler(t *testing.T) {
+	requests := []request{
+		{
+			URI:          "/health",
+			ExpectedCode: http.StatusOK,
+		},
+	}
+	newFakeController().runTests(t, requests)
+}

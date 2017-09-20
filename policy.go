@@ -27,7 +27,7 @@ import (
 )
 
 // admit is responsible for applying the policy on the incoming request
-func (c *ingressController) admit(review *admission.AdmissionReview) (admission.AdmissionReviewStatus, error) {
+func (c *controller) admit(review *admission.AdmissionReview) (admission.AdmissionReviewStatus, error) {
 	var status admission.AdmissionReviewStatus
 
 	// @step: check the domain being requested it whitelisted on the namespace
@@ -71,7 +71,7 @@ func (c *ingressController) admit(review *admission.AdmissionReview) (admission.
 			"namespace": review.Spec.Namespace,
 		}).Warn(message)
 
-		status.Result.Message = "namespace has no whitelist annotation"
+		status.Result.Message = message
 
 		return status, nil
 	}
