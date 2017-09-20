@@ -102,7 +102,7 @@ cover:
 glide-install:
 	@echo "--> Installing dependencies"
 	@go get github.com/Masterminds/glide
-	@glide install
+	@glide install --strip-vendor
 
 test: deps
 	@echo "--> Running the tests"
