@@ -16,7 +16,7 @@ pipeline:
     secrets: [docker_password]
     commands:
       - docker build -t quay.io/ukhomeofficedigital/ingress-admission:latest .
-      - docker login -u="ukhomeofficedigital+cfssl_sidekick" -p=$${DOCKER_PASSWORD} quay.io
+      - docker login -u="ukhomeofficedigital+ingress_admission" -p=$${DOCKER_PASSWORD} quay.io
       - docker push quay.io/ukhomeofficedigital/ingress-admission:latest
     when:
       event: push
@@ -29,7 +29,7 @@ pipeline:
     secrets: [docker_password]
     commands:
       - docker build -t quay.io/ukhomeofficedigital/ingress-admission:$${DRONE_TAG} .
-      - docker login -u="ukhomeofficedigital+cfssl_sidekick" -p=$${DOCKER_PASSWORD} quay.io
+      - docker login -u="ukhomeofficedigital+ingress_admission" -p=$${DOCKER_PASSWORD} quay.io
       - docker push quay.io/ukhomeofficedigital/ingress-admission:$${DRONE_TAG}
     when:
       event: tag
