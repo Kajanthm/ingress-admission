@@ -30,6 +30,21 @@ spec:
                 values: [ master ]
       serviceAccount: admission-ingress
       containers:
+      - name: certs
+        image: quay.io/ukhomeofficedigital/cfssl-sidekick:v0.0.1
+        resources:
+          limits:
+            cpu: 100m
+            memory: 60Mi
+        env:
+        - name: DOMAIN
+          value: ingress-admission.${KUBE_NAMESPACE}.svc.cluster.local
+        - name: TLS_CA
+          value: /caroot/caroot.pem
+        volumeMounts:
+        - name: caroot
+          mountPath: /caroot
+          readOnly: true
       - name: ingress-admission
         image: quay.io/ukhomeofficedigital/ingress-admission:v0.0.1
         imagePullPolicy: Always
@@ -39,11 +54,9 @@ spec:
             memory: 128Mi
         env:
         - name: TLS_CERT
-          value: /certs/server.cert
+          value: /certs/tls.pem
         - name: TLS_KEY
-          value: /certs/server.key
-        - name: TLS_CA
-          value: /certs/ca.crt
+          value: /certs/tls-key.pem
         ports:
         - name: https
           containerPort: 8443
@@ -62,6 +75,6 @@ spec:
           mountPath: /certs
           readOnly: true
       volumes:
-      - name: certs
-        hostPath:
-          path: /srv/kubernetes
+      - name: caroot
+        configMap:
+          name: caroot
