@@ -17,14 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 // reviewHandler is responsible for handling the incoming admission request review
@@ -33,9 +29,9 @@ func (c *controller) reviewHandler(ctx echo.Context) error {
 
 	// @step: we need to unmarshal the review
 	if err := ctx.Bind(review); err != nil {
-		fmt.Printf("error: %s\n", err)
-
-		log.WithFields(log.Fields{"error": err.Error()}).Error("unable to decode the request")
+		log.WithFields(log.Fields{
+			"error": err.Error(),
+		}).Error("unable to decode the request")
 
 		return ctx.NoContent(http.StatusBadRequest)
 	}
@@ -52,26 +48,10 @@ func (c *controller) reviewHandler(ctx echo.Context) error {
 
 // healthHandler is just a health endpoint for the kubelet to call
 func (c *controller) healthHandler(ctx echo.Context) error {
-	return ctx.String(http.StatusOK, "OK")
+	return ctx.String(http.StatusOK, "OK\n")
 }
 
 // versionHandler is responsible for handling the version handler
 func (c *controller) versionHandler(ctx echo.Context) error {
 	return ctx.String(http.StatusOK, Version)
-}
-
-// decodeAdmissionReview is responsible for unmarshalling the request into a view
-func decodeAdmissionReview(reader io.Reader) (*AdmissionReview, error) {
-	// @step: decode the request into a admission review
-	content, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	review := AdmissionReview{}
-	if err := json.Unmarshal(content, &review); err != nil {
-		return nil, err
-	}
-
-	return &review, nil
 }

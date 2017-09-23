@@ -52,43 +52,29 @@ func main() {
 				EnvVar: "TLS_KEY",
 			},
 			cli.BoolFlag{
-				Name:   "enable-logging",
+				Name:   "enable-http-logging",
 				Usage:  "enable http logging on the service `BOOL`",
-				EnvVar: "ENABLE_LOGGING",
-			},
-			cli.BoolFlag{
-				Name:   "verbose",
-				Usage:  "whether to enable verbose logging `BOOL`",
-				EnvVar: "VERBOSE",
+				EnvVar: "ENABLE_HTTP_LOGGING",
 			},
 		},
 
 		Action: func(c *cli.Context) error {
-			// @step: build the options
-			cfg := Config{
-				EnableLogging: c.Bool("enable-logging"),
-				Listen:        c.String("listen"),
-				TLSCA:         c.String("tls-ca"),
-				TLSCert:       c.String("tls-cert"),
-				TLSKey:        c.String("tls-key"),
-				Verbose:       c.Bool("verbose"),
-			}
-
-			// @step: setup the logging
-			if cfg.Verbose {
-				log.SetLevel(log.DebugLevel)
-			}
 			log.SetFormatter(&log.JSONFormatter{})
 
 			// @step: create the controller
-			ctl, err := newController(cfg)
+			ctl, err := newController(Config{
+				EnableLogging: c.Bool("enable-logging"),
+				Listen:        c.String("listen"),
+				TLSCert:       c.String("tls-cert"),
+				TLSKey:        c.String("tls-key"),
+			})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "[error] unable to initialize controller, %s", err)
 				os.Exit(1)
 			}
 
 			// @step: start the service
-			if err := ctl.run(); err != nil {
+			if err := ctl.start(); err != nil {
 				fmt.Fprintf(os.Stderr, "[error] unable to start controller, %s", err)
 				os.Exit(1)
 			}

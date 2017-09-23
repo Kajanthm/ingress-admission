@@ -40,8 +40,8 @@ func newController(cfg Config) (*controller, error) {
 	log.Infof("starting the ingress admission controller, version: %s, listen: %s", Version, cfg.Listen)
 	c := &controller{config: &cfg}
 
-	// @step: create the http service
 	c.engine = echo.New()
+	c.engine.HideBanner = true
 	c.engine.Use(middleware.Recover())
 	if cfg.EnableLogging {
 		c.engine.Use(middleware.Logger())
@@ -114,8 +114,8 @@ func (c *controller) admit(review *AdmissionReview) error {
 	return nil
 }
 
-// run start's the http service
-func (c *controller) run() error {
+// start is repsonsible for starting the service up
+func (c *controller) start() error {
 	// @step: attempt to create a kubernetes client
 	client, err := getKubernetesClient()
 	if err != nil {
