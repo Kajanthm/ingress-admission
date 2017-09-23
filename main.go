@@ -51,17 +51,7 @@ func main() {
 				Usage:  "the path to a file containing the tls key `PATH`",
 				EnvVar: "TLS_KEY",
 			},
-			cli.StringFlag{
-				Name:   "tls-ca",
-				Usage:  "the path to a file containing tls certificate for CA `PATH`",
-				EnvVar: "TLS_CA",
-			},
 			cli.BoolFlag{
-				Name:   "enable-client-tls",
-				Usage:  "enable mutual tls for incoming requests, must be signed by ca `BOOL`",
-				EnvVar: "ENABLE_CLIENT_TLS",
-			},
-			cli.BoolTFlag{
 				Name:   "enable-logging",
 				Usage:  "enable http logging on the service `BOOL`",
 				EnvVar: "ENABLE_LOGGING",
@@ -76,19 +66,19 @@ func main() {
 		Action: func(c *cli.Context) error {
 			// @step: build the options
 			cfg := Config{
-				EnableClientTLS: c.Bool("enable-client-tls"),
-				EnableLogging:   c.Bool("enable-logging"),
-				Listen:          c.String("listen"),
-				TLSCA:           c.String("tls-ca"),
-				TLSCert:         c.String("tls-cert"),
-				TLSKey:          c.String("tls-key"),
-				Verbose:         c.Bool("verbose"),
+				EnableLogging: c.Bool("enable-logging"),
+				Listen:        c.String("listen"),
+				TLSCA:         c.String("tls-ca"),
+				TLSCert:       c.String("tls-cert"),
+				TLSKey:        c.String("tls-key"),
+				Verbose:       c.Bool("verbose"),
 			}
+
 			// @step: setup the logging
 			if cfg.Verbose {
 				log.SetLevel(log.DebugLevel)
-				log.SetFormatter(&log.JSONFormatter{})
 			}
+			log.SetFormatter(&log.JSONFormatter{})
 
 			// @step: create the controller
 			ctl, err := newController(cfg)

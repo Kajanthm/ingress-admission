@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -25,17 +26,20 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 type request struct {
 	Method          string
 	URI             string
+	Body            string
 	ExpectedCode    int
 	ExpectedContent string
 }
 
 type fakeController struct {
 	svc *httptest.Server
+	ctl *controller
 }
 
 func newFakeController() *fakeController {
@@ -43,10 +47,9 @@ func newFakeController() *fakeController {
 	c, _ := newController(Config{
 		EnableLogging: false,
 	})
+	c.client = fake.NewSimpleClientset()
 
-	svc := httptest.NewServer(c.engine)
-
-	return &fakeController{svc: svc}
+	return &fakeController{svc: httptest.NewServer(c.engine), ctl: c}
 }
 
 // runTests performs a series of tests on the service
@@ -57,10 +60,11 @@ func (c *fakeController) runTests(t *testing.T, requests []request) {
 		if x.Method != "" {
 			method = x.Method
 		}
-
-		req, err := http.NewRequest(method, c.svc.URL+x.URI, nil)
+		req, err := http.NewRequest(method, c.svc.URL+x.URI, bytes.NewBufferString(x.Body))
 		require.NoError(t, err, "case %d should not have thrown error: %s", i, err)
 		require.NotNil(t, req, "case %d response should not be nil", i)
+		req.Header.Set("Content-Type", "application/json")
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err, "case %d should not have thrown error: %s", i, err)
 		require.NotNil(t, resp, "case %d response should not be nil", i)

@@ -1,0 +1,82 @@
+- expected: |
+    {"kind":"AdmissionReview","apiVersion":"admission.k8s.io/v1alpha1","Spec":{"Kind":{"group":"extensions","version":"v1beta1","kind":"Ingress"},"Name":"test","Namespace":"test","Object":{"name":"test","namespace":"test","selfLink":"/apis/extensions/v1beta1/namespaces/test/ingresses/test","uid":"2969bef3-9e26-11e7-bcf8-0a2119c5b4f0","resourceVersion":"4277043","generation":1,"creationTimestamp":"2017-09-20T17:07:19Z","annotations":{"ingress.kubernetes.io/secure-backends":"true"},"Spec":{"Backend":null,"TLS":[{"Hosts":["rohith.dev.homeoffice.gov.uk"],"SecretName":"tls"}],"Rules":[{"Host":"rohith.dev.homeoffice.gov.uk","HTTP":{"Paths":[{"Path":"/","Backend":{"ServiceName":"service","ServicePort":443}}]}}]},"Status":{"LoadBalancer":{"Ingress":[{"IP":"","Hostname":""}]}}},"OldObject":null,"Operation":"CREATE","Resource":{"group":"extensions","version":"v1beta1","resource":"ingresses"},"SubResource":"","UserInfo":{"Username":"admin","UID":"admin","Groups":["system:masters","system:authenticated"],"Extra":null}},"Status":{"Allowed":false,"Result":{"metadata":{},"message":"namespace has no whitelist annotation"}}}
+  request: |
+    {
+      "kind": "AdmissionReview",
+      "apiVersion": "admission.k8s.io/v1alpha1",
+      "spec": {
+        "kind": {
+          "group": "extensions",
+          "version": "v1beta1",
+          "kind": "Ingress"
+        },
+        "object": {
+          "name": "test",
+          "namespace": "test",
+          "selfLink": "/apis/extensions/v1beta1/namespaces/test/ingresses/test",
+          "uid": "2969bef3-9e26-11e7-bcf8-0a2119c5b4f0",
+          "resourceVersion": "4277043",
+          "generation": 1,
+          "creationTimestamp": "2017-09-20T17:07:19Z",
+          "annotations": {
+            "ingress.kubernetes.io/secure-backends": "true"
+          },
+          "Spec": {
+            "Backend": null,
+            "TLS": [
+              {
+                "Hosts": [
+                  "rohith.dev.homeoffice.gov.uk"
+                ],
+                "SecretName": "tls"
+              }
+            ],
+            "Rules": [
+              {
+                "Host": "rohith.dev.homeoffice.gov.uk",
+                "HTTP": {
+                  "Paths": [
+                    {
+                      "Path": "/",
+                      "Backend": {
+                        "ServiceName": "service",
+                        "ServicePort": 443
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "Status": {
+            "LoadBalancer": {
+              "Ingress": [
+                {
+                  "IP": "",
+                  "Hostname": ""
+                }
+              ]
+            }
+          }
+        },
+        "operation": "CREATE",
+        "name": "test",
+        "namespace": "test",
+        "resource": {
+          "group": "extensions",
+          "version": "v1beta1",
+          "resource": "ingresses"
+        },
+        "userInfo": {
+          "username": "admin",
+          "uid": "admin",
+          "groups": [
+            "system:masters",
+            "system:authenticated"
+          ]
+        }
+      },
+      "status": {
+        "allowed": false
+      }
+    }

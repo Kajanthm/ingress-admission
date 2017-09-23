@@ -17,35 +17,36 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/apis/admission"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 // reviewHandler is responsible for handling the incoming admission request review
 func (c *controller) reviewHandler(ctx echo.Context) error {
+	review := &AdmissionReview{}
+
 	// @step: we need to unmarshal the review
-	review, err := decodeAdmissionReview(ctx.Request().Body)
-	if err != nil {
+	if err := ctx.Bind(review); err != nil {
+		fmt.Printf("error: %s\n", err)
+
 		log.WithFields(log.Fields{"error": err.Error()}).Error("unable to decode the request")
 
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
 	// @step: apply the policy against the review
-	review.Status, err = c.admit(review)
-	if err != nil {
+	if err := c.admit(review); err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Error("unable to apply the policy")
 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	// @step: hand back the review status
 	return ctx.JSON(http.StatusOK, review)
 }
 
@@ -60,16 +61,17 @@ func (c *controller) versionHandler(ctx echo.Context) error {
 }
 
 // decodeAdmissionReview is responsible for unmarshalling the request into a view
-func decodeAdmissionReview(reader io.Reader) (*admission.AdmissionReview, error) {
+func decodeAdmissionReview(reader io.Reader) (*AdmissionReview, error) {
 	// @step: decode the request into a admission review
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
-	review := &admission.AdmissionReview{}
+
+	review := AdmissionReview{}
 	if err := json.Unmarshal(content, &review); err != nil {
 		return nil, err
 	}
 
-	return review, nil
+	return &review, nil
 }

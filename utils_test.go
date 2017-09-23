@@ -22,6 +22,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGetTLSCOnfig(t *testing.T) {
+	c, err := getTLSConfig(&Config{})
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+}
+
 func TestHasDomainOK(t *testing.T) {
 	cs := []struct {
 		Hostname  string

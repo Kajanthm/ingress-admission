@@ -21,6 +21,43 @@ import (
 	"testing"
 )
 
+type unitTest struct {
+	Expected    string `yaml:"expected"`
+	Request     string `yaml:"request"`
+	Description string `yaml:"description"`
+}
+
+/*
+func TestReviewHandler(t *testing.T) {
+	var unitTests []unitTest
+
+	content, err := ioutil.ReadFile("tests/unit-tests.yaml")
+	require.NoError(t, err, "unable to read in the unit tests")
+	require.NoError(t, yaml.Unmarshal(content, &unitTests))
+
+	var requests []request
+
+	c := newFakeController()
+	c.ctl.client.CoreV1().Namespaces().Create(&v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	})
+
+	for _, x := range unitTests {
+		requests = append(requests, request{
+			URI:             "/",
+			Method:          http.MethodPost,
+			Body:            x.Request,
+			ExpectedCode:    http.StatusOK,
+			ExpectedContent: x.Expected,
+		})
+	}
+
+	c.runTests(t, requests)
+}
+*/
+
 func TestVersionHandler(t *testing.T) {
 	requests := []request{
 		{

@@ -17,46 +17,101 @@ limitations under the License.
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"io/ioutil"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
-// controller
 type controller struct {
-	// client is the kubernetes client
-	client *kubernetes.Clientset
-	// engine the http server
+	client kubernetes.Interface
 	engine *echo.Echo
-	// config is the configuration for the service
 	config *Config
 }
 
 // newController creates, registers and starts the admission controller
 func newController(cfg Config) (*controller, error) {
 	log.Infof("starting the ingress admission controller, version: %s, listen: %s", Version, cfg.Listen)
-	c := &controller{
-		config: &cfg,
-	}
+	c := &controller{config: &cfg}
+
 	// @step: create the http service
 	c.engine = echo.New()
 	c.engine.Use(middleware.Recover())
 	if cfg.EnableLogging {
 		c.engine.Use(middleware.Logger())
 	}
-	c.engine.GET("/review", c.reviewHandler)
+	c.engine.POST("/", c.reviewHandler)
 	c.engine.GET("/health", c.healthHandler)
 	c.engine.GET("/version", c.versionHandler)
 
 	return c, nil
+}
+
+// admit is responsible for applying the policy on the incoming request
+func (c *controller) admit(review *AdmissionReview) error {
+
+	ok, message := func() (bool, string) {
+		// @step: check the domain being requested it whitelisted on the namespace
+		namespace, err := c.client.CoreV1().Namespaces().Get(review.Spec.Namespace, metav1.GetOptions{})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error":     err.Error(),
+				"namespace": review.Spec.Namespace,
+			}).Error("unable to retrieve namespace")
+
+			return false, "unable to get namespace"
+		}
+
+		// @check the annotation exists on the namespace
+		whitelist, found := namespace.GetAnnotations()[DomainWhitelistAnnotation]
+		if !found {
+			return false, fmt.Sprintf("namespace has no whitelist annotation: %s", DomainWhitelistAnnotation)
+		}
+
+		// @check the whitelist is not empty
+		if whitelist == "" {
+			return false, "namespace whitelist is empty"
+		}
+		whitelistedDomains := strings.Split(whitelist, ",")
+
+		// @check if the hostname is covered by the whitelist
+		if review.Spec.Object == nil {
+			return false, "no igress object found in review"
+		}
+		for _, rule := range review.Spec.Object.Spec.Rules {
+			if found := hasDomain(rule.Host, whitelistedDomains); !found {
+				return false, fmt.Sprintf("hostname %s is not permitted by namespace policy", rule.Host)
+			}
+		}
+
+		return true, ""
+	}()
+	if !ok {
+		log.WithFields(log.Fields{
+			"namespace": review.Spec.Namespace,
+			"error":     message,
+		}).Warn(message)
+
+		review.Status.Allowed = false
+		review.Status.Result = &metav1.Status{
+			Code:    http.StatusForbidden,
+			Message: message,
+			Reason:  metav1.StatusReasonForbidden,
+			Status:  metav1.StatusFailure,
+		}
+
+		return nil
+	}
+
+	review.Status.Allowed = true
+
+	return nil
 }
 
 // run start's the http service
@@ -69,7 +124,7 @@ func (c *controller) run() error {
 	c.client = client
 
 	// @step: configure the http server
-	tlsConfig, err := buildTLSConfig(c.config)
+	tlsConfig, err := getTLSConfig(c.config)
 	if err != nil {
 		return err
 	}
@@ -94,50 +149,4 @@ func (c *controller) run() error {
 	}()
 
 	return nil
-}
-
-// buildTLSConfig builds the TLS configuration from the options
-func buildTLSConfig(cfg *Config) (*tls.Config, error) {
-	tlsConfig := &tls.Config{
-		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		PreferServerCipherSuites: true,
-		MinVersion:               tls.VersionTLS12,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		},
-	}
-
-	// @step: load the certificates
-	cert, err := tls.LoadX509KeyPair(cfg.TLSCert, cfg.TLSKey)
-	if err != nil {
-		return nil, err
-	}
-	tlsConfig.Certificates = []tls.Certificate{cert}
-
-	// @step: are we using client mutual tls?
-	if cfg.EnableClientTLS {
-		clientCA, err := ioutil.ReadFile(cfg.TLSCA)
-		if err != nil {
-			return nil, err
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(clientCA)
-		tlsConfig.ClientCAs = caCertPool
-		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-	}
-
-	return tlsConfig, nil
-}
-
-// getKubernetesClient returns a kubernetes api client for us
-func getKubernetesClient() (*kubernetes.Clientset, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return kubernetes.NewForConfig(config)
 }

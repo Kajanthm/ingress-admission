@@ -2,9 +2,8 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: ingress-admission
-  namespace: kube-system
 spec:
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -28,7 +27,7 @@ spec:
               - key: 'kubernetes.io/role'
                 operator: In
                 values: [ master ]
-      serviceAccount: admission-ingress
+      serviceAccount: ingress-admission
       containers:
       - name: certs
         image: quay.io/ukhomeofficedigital/cfssl-sidekick:v0.0.1
@@ -36,16 +35,25 @@ spec:
           limits:
             cpu: 100m
             memory: 60Mi
+        args:
+        - --domain=ingress-admission.${KUBE_NAMESPACE}.svc.cluster.local
+        - --domain=ingress-admission
+        - --domain=localhost
+        - --domain=127.0.0.1
+        - --domain=10.10.22.100
+        - --tls-ca=/ca/ca.pem
         env:
-        - name: DOMAIN
-          value: ingress-admission.${KUBE_NAMESPACE}.svc.cluster.local
-        - name: TLS_CA
-          value: /caroot/caroot.pem
+        - name: KUBE_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         volumeMounts:
-        - name: caroot
-          mountPath: /caroot
+        - name: certs
+          mountPath: /certs
+        - name: ca
+          mountPath: /ca
           readOnly: true
-      - name: ingress-admission
+      - name: controller
         image: quay.io/ukhomeofficedigital/ingress-admission:v0.0.1
         imagePullPolicy: Always
         resources:
@@ -74,7 +82,12 @@ spec:
         - name: certs
           mountPath: /certs
           readOnly: true
+        - name: ca
+          mountPath: /ca
+          readOnly: true
       volumes:
-      - name: caroot
-        configMap:
-          name: caroot
+      - name: ca
+        secret:
+          secretName: ca
+      - name: certs
+        emptyDir: {}

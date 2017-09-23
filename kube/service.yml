@@ -5,6 +5,7 @@ metadata:
     name: ingress-admission
   name: ingress-admission
 spec:
+  clusterIP: 10.10.22.100
   selector:
     name: ingress-admission
   ports:

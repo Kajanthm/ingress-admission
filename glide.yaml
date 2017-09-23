@@ -16,6 +16,9 @@ import:
   subpackages:
   - pkg/apis/admission
   - pkg/apis/extensions
+- package: k8s.io/apiserver
+  subpackages:
+  - pkg/admission
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
