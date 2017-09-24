@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -53,5 +54,5 @@ func (c *controller) healthHandler(ctx echo.Context) error {
 
 // versionHandler is responsible for handling the version handler
 func (c *controller) versionHandler(ctx echo.Context) error {
-	return ctx.String(http.StatusOK, Version)
+	return ctx.String(http.StatusOK, fmt.Sprintf("%s\n", Version))
 }
