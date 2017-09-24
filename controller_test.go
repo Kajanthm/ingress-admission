@@ -27,17 +27,18 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	admission "k8s.io/api/admission/v1alpha1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 type request struct {
 	Method          string
 	URI             string
-	AdmissionReview *AdmissionReview
+	AdmissionReview *admission.AdmissionReview
 
 	ExpectedCode    int
 	ExpectedContent string
-	ExpectedStatus  *AdmissionReviewStatus
+	ExpectedStatus  *admission.AdmissionReviewStatus
 }
 
 type fakeController struct {
@@ -87,7 +88,7 @@ func (c *fakeController) runTests(t *testing.T, requests []request) {
 			assert.Equal(t, x.ExpectedContent, string(content), "case %d, expected: %s, got: %s", i, x.ExpectedContent, string(content))
 		}
 		if x.ExpectedStatus != nil {
-			status := &AdmissionReview{}
+			status := &admission.AdmissionReview{}
 			if err := json.Unmarshal(content, status); err != nil {
 				t.Errorf("case %d, unable to decode responce, error: %s", i, err)
 				continue

@@ -22,11 +22,12 @@ import (
 
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
+	admission "k8s.io/api/admission/v1alpha1"
 )
 
 // reviewHandler is responsible for handling the incoming admission request review
 func (c *controller) reviewHandler(ctx echo.Context) error {
-	review := &AdmissionReview{}
+	review := &admission.AdmissionReview{}
 
 	// @step: we need to unmarshal the review
 	if err := ctx.Bind(review); err != nil {

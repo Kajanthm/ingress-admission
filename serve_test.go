@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -25,6 +26,7 @@ import (
 	api "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -37,7 +39,7 @@ func TestIngressNoNamespace(t *testing.T) {
 			URI:             "/",
 			Method:          http.MethodPost,
 			AdmissionReview: createFakeIngressReview(fakeHostname),
-			ExpectedStatus: &AdmissionReviewStatus{
+			ExpectedStatus: &admission.AdmissionReviewStatus{
 				Result: &metav1.Status{
 					Code:    http.StatusForbidden,
 					Message: "unable to get namespace",
@@ -64,7 +66,7 @@ func TestIngressNoAnnotation(t *testing.T) {
 			URI:             "/",
 			Method:          http.MethodPost,
 			AdmissionReview: createFakeIngressReview(fakeHostname),
-			ExpectedStatus: &AdmissionReviewStatus{
+			ExpectedStatus: &admission.AdmissionReviewStatus{
 				Result: &metav1.Status{
 					Code:    http.StatusForbidden,
 					Message: "namespace has no whitelist annotation: ingress-admission.acp.homeoffice.gov.uk/domains",
@@ -92,7 +94,7 @@ func TestWhitelistEmpty(t *testing.T) {
 			URI:             "/",
 			Method:          http.MethodPost,
 			AdmissionReview: createFakeIngressReview(fakeHostname),
-			ExpectedStatus: &AdmissionReviewStatus{
+			ExpectedStatus: &admission.AdmissionReviewStatus{
 				Result: &metav1.Status{
 					Code:    http.StatusForbidden,
 					Message: "namespace whitelist is empty",
@@ -119,21 +121,21 @@ func TestNamespaceWhitelist(t *testing.T) {
 			URI:             "/",
 			Method:          http.MethodPost,
 			AdmissionReview: createFakeIngressReview("rohith.test.svc.cluster.local"),
-			ExpectedStatus:  &AdmissionReviewStatus{Allowed: true},
+			ExpectedStatus:  &admission.AdmissionReviewStatus{Allowed: true},
 			ExpectedCode:    http.StatusOK,
 		},
 		{
 			URI:             "/",
 			Method:          http.MethodPost,
 			AdmissionReview: createFakeIngressReview("site.test.svc.cluster.local"),
-			ExpectedStatus:  &AdmissionReviewStatus{Allowed: true},
+			ExpectedStatus:  &admission.AdmissionReviewStatus{Allowed: true},
 			ExpectedCode:    http.StatusOK,
 		},
 		{
 			URI:             "/",
 			Method:          http.MethodPost,
 			AdmissionReview: createFakeIngressReview("bad.test.test.svc.cluster.local"),
-			ExpectedStatus: &AdmissionReviewStatus{
+			ExpectedStatus: &admission.AdmissionReviewStatus{
 				Result: &metav1.Status{
 					Code:    http.StatusForbidden,
 					Message: "hostname: bad.test.test.svc.cluster.local is not permitted by namespace policy",
@@ -204,21 +206,23 @@ func createFakeIngress(hostname string) *extensions.Ingress {
 	}
 }
 
-func createFakeIngressReview(hostname string) *AdmissionReview {
+func createFakeIngressReview(hostname string) *admission.AdmissionReview {
 	ingress := createFakeIngress(hostname)
+	// we need to encode the ingress
+	content, _ := json.Marshal(ingress)
 
-	return &AdmissionReview{
+	return &admission.AdmissionReview{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AdmissionReview",
 			APIVersion: "admission.k8s.io/v1alpha1",
 		},
-		Spec: AdmissionReviewSpec{
+		Spec: admission.AdmissionReviewSpec{
 			Kind: metav1.GroupVersionKind{
 				Group:   "extensions",
 				Version: "v1beta1",
 				Kind:    "Ingress",
 			},
-			Object:    ingress,
+			Object:    runtime.RawExtension{Raw: content},
 			Operation: admission.Create,
 			Name:      "test",
 			Namespace: "test",

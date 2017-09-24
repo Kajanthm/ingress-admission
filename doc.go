@@ -16,13 +16,6 @@ limitations under the License.
 
 package main
 
-import (
-	admission "k8s.io/api/admission/v1alpha1"
-	authentication "k8s.io/api/authentication/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 const (
 	// AdmissionControllerName is the name we register as
 	AdmissionControllerName = "ingress-admission.acp.homeoffice.gov.uk"
@@ -55,6 +48,7 @@ type Config struct {
 	Verbose bool `yaml:"verbose"`
 }
 
+/*
 // AdmissionReview describes an admission request.
 type AdmissionReview struct {
 	metav1.TypeMeta
@@ -103,3 +97,4 @@ type AdmissionReviewStatus struct {
 	// +optional
 	Result *metav1.Status
 }
+*/

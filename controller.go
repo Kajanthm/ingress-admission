@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -25,6 +26,8 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	log "github.com/sirupsen/logrus"
+	admission "k8s.io/api/admission/v1alpha1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -54,10 +57,21 @@ func newController(cfg Config) (*controller, error) {
 }
 
 // admit is responsible for applying the policy on the incoming request
-func (c *controller) admit(review *AdmissionReview) error {
+func (c *controller) admit(review *admission.AdmissionReview) error {
 
 	ok, message := func() (bool, string) {
-		// @step: check the domain being requested it whitelisted on the namespace
+		// @check if the object is a ingress
+		kind := review.Spec.Kind.Kind
+		if kind != "Ingress" {
+			return false, fmt.Sprintf("invalid object for review: %s, expected: ingress", kind)
+		}
+
+		ingress := &extensions.Ingress{}
+		if err := json.Unmarshal(review.Spec.Object.Raw, ingress); err != nil {
+			return false, fmt.Sprintf("unable to decode ingress spec: %s", err)
+		}
+
+		// @check the domain being requested it whitelisted on the namespace
 		namespace, err := c.client.CoreV1().Namespaces().Get(review.Spec.Namespace, metav1.GetOptions{})
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -81,10 +95,7 @@ func (c *controller) admit(review *AdmissionReview) error {
 		whitelistedDomains := strings.Split(whitelist, ",")
 
 		// @check if the hostname is covered by the whitelist
-		if review.Spec.Object == nil {
-			return false, "no igress object found in review"
-		}
-		for _, rule := range review.Spec.Object.Spec.Rules {
+		for _, rule := range ingress.Spec.Rules {
 			if found := hasDomain(rule.Host, whitelistedDomains); !found {
 				return false, fmt.Sprintf("hostname: %s is not permitted by namespace policy", rule.Host)
 			}
