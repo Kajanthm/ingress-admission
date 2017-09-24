@@ -86,7 +86,7 @@ func (c *controller) admit(review *AdmissionReview) error {
 		}
 		for _, rule := range review.Spec.Object.Spec.Rules {
 			if found := hasDomain(rule.Host, whitelistedDomains); !found {
-				return false, fmt.Sprintf("hostname %s is not permitted by namespace policy", rule.Host)
+				return false, fmt.Sprintf("hostname: %s is not permitted by namespace policy", rule.Host)
 			}
 		}
 

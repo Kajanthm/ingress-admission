@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -32,35 +33,43 @@ import (
 type request struct {
 	Method          string
 	URI             string
-	Body            string
+	AdmissionReview *AdmissionReview
+
 	ExpectedCode    int
 	ExpectedContent string
+	ExpectedStatus  *AdmissionReviewStatus
 }
 
 type fakeController struct {
-	svc *httptest.Server
-	ctl *controller
+	server  *httptest.Server
+	service *controller
 }
 
 func newFakeController() *fakeController {
 	log.SetOutput(ioutil.Discard)
-	c, _ := newController(Config{
-		EnableLogging: false,
-	})
+	c, _ := newController(Config{EnableLogging: false})
 	c.client = fake.NewSimpleClientset()
 
-	return &fakeController{svc: httptest.NewServer(c.engine), ctl: c}
+	return &fakeController{server: httptest.NewServer(c.engine), service: c}
 }
 
 // runTests performs a series of tests on the service
 func (c *fakeController) runTests(t *testing.T, requests []request) {
 	for i, x := range requests {
-		// set the sane defaults
 		method := http.MethodGet
 		if x.Method != "" {
 			method = x.Method
 		}
-		req, err := http.NewRequest(method, c.svc.URL+x.URI, bytes.NewBufferString(x.Body))
+
+		body := bytes.NewBuffer([]byte{})
+		if x.AdmissionReview != nil {
+			encoded, err := json.Marshal(x.AdmissionReview)
+			require.NoError(t, err)
+			require.NotEmpty(t, encoded)
+			body.Write(encoded)
+		}
+
+		req, err := http.NewRequest(method, c.server.URL+x.URI, body)
 		require.NoError(t, err, "case %d should not have thrown error: %s", i, err)
 		require.NotNil(t, req, "case %d response should not be nil", i)
 		req.Header.Set("Content-Type", "application/json")
@@ -76,6 +85,14 @@ func (c *fakeController) runTests(t *testing.T, requests []request) {
 		}
 		if x.ExpectedContent != "" {
 			assert.Equal(t, x.ExpectedContent, string(content), "case %d, expected: %s, got: %s", i, x.ExpectedContent, string(content))
+		}
+		if x.ExpectedStatus != nil {
+			status := &AdmissionReview{}
+			if err := json.Unmarshal(content, status); err != nil {
+				t.Errorf("case %d, unable to decode responce, error: %s", i, err)
+				continue
+			}
+			assert.Equal(t, *x.ExpectedStatus, status.Status)
 		}
 	}
 }

@@ -12,6 +12,7 @@ import:
   subpackages:
   - kubernetes
   - rest
+  - discovery
 - package: k8s.io/kubernetes
   subpackages:
   - pkg/apis/admission

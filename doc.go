@@ -17,10 +17,10 @@ limitations under the License.
 package main
 
 import (
+	admission "k8s.io/api/admission/v1alpha1"
+	authentication "k8s.io/api/authentication/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/kubernetes/pkg/apis/authentication"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 )
 
 const (

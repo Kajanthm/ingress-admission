@@ -1,5 +1,5 @@
-hash: b304c57c3cdd53c7d5664bbb6eb84cd9b113de4b6e87010433ad9bdb8b967535
-updated: 2017-09-23T12:29:12.47849815+01:00
+hash: d7e6de2d1cfe8dbc9946cfdda7d74b5f3516caea75b580bfc437351fc66d72f8
+updated: 2017-09-23T20:15:32.10110476+01:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -102,7 +102,6 @@ imports:
 - name: golang.org/x/net
   version: 1c05540f6879653db88113bc4a2b70aec4bd491f
   subpackages:
-  - context
   - html
   - html/atom
   - http2
@@ -281,11 +280,11 @@ imports:
   - util/flowcontrol
   - util/integer
 - name: k8s.io/kube-openapi
-  version: 80f07ef71bb4f781233c65aa8d0369e4ecafab87
+  version: 868f2f29720b192240e18284659231b440f9cda5
   subpackages:
   - pkg/common
 - name: k8s.io/kubernetes
-  version: 4acacc6ed9a6f783bdefa5a169304289605f9a84
+  version: 7008b9043b8dcc5344b4d0e002bad252faffe7fe
   subpackages:
   - pkg/api
   - pkg/apis/admission

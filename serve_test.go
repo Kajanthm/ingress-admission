@@ -19,44 +19,134 @@ package main
 import (
 	"net/http"
 	"testing"
+
+	admission "k8s.io/api/admission/v1alpha1"
+	authentication "k8s.io/api/authentication/v1"
+	api "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type unitTest struct {
-	Expected    string `yaml:"expected"`
-	Request     string `yaml:"request"`
-	Description string `yaml:"description"`
+const (
+	fakeHostname = "rohith.dev.homeoffice.gov.uk"
+)
+
+func TestIngressNoNamespace(t *testing.T) {
+	requests := []request{
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview(fakeHostname),
+			ExpectedStatus: &AdmissionReviewStatus{
+				Result: &metav1.Status{
+					Code:    http.StatusForbidden,
+					Message: "unable to get namespace",
+					Reason:  metav1.StatusReasonForbidden,
+					Status:  metav1.StatusFailure,
+				},
+			},
+			ExpectedCode: http.StatusOK,
+		},
+	}
+	newFakeController().runTests(t, requests)
 }
 
-/*
-func TestReviewHandler(t *testing.T) {
-	var unitTests []unitTest
-
-	content, err := ioutil.ReadFile("tests/unit-tests.yaml")
-	require.NoError(t, err, "unable to read in the unit tests")
-	require.NoError(t, yaml.Unmarshal(content, &unitTests))
-
-	var requests []request
-
+func TestIngressNoAnnotation(t *testing.T) {
 	c := newFakeController()
-	c.ctl.client.CoreV1().Namespaces().Create(&v1.Namespace{
+	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 	})
 
-	for _, x := range unitTests {
-		requests = append(requests, request{
+	requests := []request{
+		{
 			URI:             "/",
 			Method:          http.MethodPost,
-			Body:            x.Request,
-			ExpectedCode:    http.StatusOK,
-			ExpectedContent: x.Expected,
-		})
+			AdmissionReview: createFakeIngressReview(fakeHostname),
+			ExpectedStatus: &AdmissionReviewStatus{
+				Result: &metav1.Status{
+					Code:    http.StatusForbidden,
+					Message: "namespace has no whitelist annotation: ingress-admission.acp.homeoffice.gov.uk/domains",
+					Reason:  metav1.StatusReasonForbidden,
+					Status:  metav1.StatusFailure,
+				},
+			},
+			ExpectedCode: http.StatusOK,
+		},
 	}
-
 	c.runTests(t, requests)
 }
-*/
+
+func TestWhitelistEmpty(t *testing.T) {
+	c := newFakeController()
+	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test",
+			Annotations: map[string]string{DomainWhitelistAnnotation: ""},
+		},
+	})
+
+	requests := []request{
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview(fakeHostname),
+			ExpectedStatus: &AdmissionReviewStatus{
+				Result: &metav1.Status{
+					Code:    http.StatusForbidden,
+					Message: "namespace whitelist is empty",
+					Reason:  metav1.StatusReasonForbidden,
+					Status:  metav1.StatusFailure,
+				},
+			},
+			ExpectedCode: http.StatusOK,
+		},
+	}
+	c.runTests(t, requests)
+}
+
+func TestNamespaceWhitelist(t *testing.T) {
+	c := newFakeController()
+	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test",
+			Annotations: map[string]string{DomainWhitelistAnnotation: "*.test.svc.cluster.local"},
+		},
+	})
+	requests := []request{
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview("rohith.test.svc.cluster.local"),
+			ExpectedStatus:  &AdmissionReviewStatus{Allowed: true},
+			ExpectedCode:    http.StatusOK,
+		},
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview("site.test.svc.cluster.local"),
+			ExpectedStatus:  &AdmissionReviewStatus{Allowed: true},
+			ExpectedCode:    http.StatusOK,
+		},
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview("bad.test.test.svc.cluster.local"),
+			ExpectedStatus: &AdmissionReviewStatus{
+				Result: &metav1.Status{
+					Code:    http.StatusForbidden,
+					Message: "hostname: bad.test.test.svc.cluster.local is not permitted by namespace policy",
+					Reason:  metav1.StatusReasonForbidden,
+					Status:  metav1.StatusFailure,
+				},
+			},
+			ExpectedCode: http.StatusOK,
+		},
+	}
+	c.runTests(t, requests)
+
+}
 
 func TestVersionHandler(t *testing.T) {
 	requests := []request{
@@ -77,4 +167,69 @@ func TestHealthHandler(t *testing.T) {
 		},
 	}
 	newFakeController().runTests(t, requests)
+}
+
+func createFakeIngress(hostname string) *extensions.Ingress {
+	if hostname == "" {
+		hostname = "rohith.dev.homeoffice.gov.uk"
+	}
+	return &extensions.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: extensions.IngressSpec{
+			TLS: []extensions.IngressTLS{
+				{
+					Hosts:      []string{hostname},
+					SecretName: "tls",
+				},
+			},
+			Rules: []extensions.IngressRule{
+				{
+					Host: hostname,
+				},
+			},
+		},
+		Status: extensions.IngressStatus{
+			LoadBalancer: api.LoadBalancerStatus{
+				Ingress: []api.LoadBalancerIngress{
+					{
+						IP:       "",
+						Hostname: "",
+					},
+				},
+			},
+		},
+	}
+}
+
+func createFakeIngressReview(hostname string) *AdmissionReview {
+	ingress := createFakeIngress(hostname)
+
+	return &AdmissionReview{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AdmissionReview",
+			APIVersion: "admission.k8s.io/v1alpha1",
+		},
+		Spec: AdmissionReviewSpec{
+			Kind: metav1.GroupVersionKind{
+				Group:   "extensions",
+				Version: "v1beta1",
+				Kind:    "Ingress",
+			},
+			Object:    ingress,
+			Operation: admission.Create,
+			Name:      "test",
+			Namespace: "test",
+			Resource: metav1.GroupVersionResource{
+				Group:    "extensions",
+				Version:  "v1beta1",
+				Resource: "ingresses",
+			},
+			UserInfo: authentication.UserInfo{
+				Username: "admin",
+			},
+		},
+	}
 }
