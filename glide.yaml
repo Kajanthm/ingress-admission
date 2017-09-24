@@ -5,6 +5,10 @@ import:
   - middleware
 - package: github.com/sirupsen/logrus
 - package: github.com/urfave/cli
+- package: k8s.io/api
+  subpackages:
+  - admission/v1alpha1
+  - extensions/v1beta1
 - package: k8s.io/apimachinery
   subpackages:
   - pkg/apis/meta/v1
@@ -12,8 +16,8 @@ import:
   subpackages:
   - kubernetes
   - rest
-  - discovery
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
   - assert
+  - require
