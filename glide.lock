@@ -1,5 +1,5 @@
-hash: d7e6de2d1cfe8dbc9946cfdda7d74b5f3516caea75b580bfc437351fc66d72f8
-updated: 2017-09-24T23:35:18.202224469+01:00
+hash: e55fe6c6f57758bca3b9bdf2be51a560b8b6d7a5972fea2f9412a79a8780b521
+updated: 2017-09-24T23:45:59.564208527+01:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -198,10 +198,6 @@ imports:
   - pkg/version
   - pkg/watch
   - third_party/forked/golang/reflect
-- name: k8s.io/apiserver
-  version: c1e53d745d0fe45bf7d5d44697e6eface25fceca
-  subpackages:
-  - pkg/admission
 - name: k8s.io/client-go
   version: 82aa063804cf055e16e8911250f888bc216e8b61
   subpackages:
@@ -273,11 +269,6 @@ imports:
   version: 868f2f29720b192240e18284659231b440f9cda5
   subpackages:
   - pkg/common
-- name: k8s.io/kubernetes
-  version: 7008b9043b8dcc5344b4d0e002bad252faffe7fe
-  subpackages:
-  - pkg/apis/admission
-  - pkg/apis/extensions
 testImports:
 - name: github.com/pmezard/go-difflib
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
