@@ -153,7 +153,7 @@ func TestVersionHandler(t *testing.T) {
 		{
 			URI:             "/version",
 			ExpectedCode:    http.StatusOK,
-			ExpectedContent: Version,
+			ExpectedContent: Version + "\n",
 		},
 	}
 	newFakeController().runTests(t, requests)
