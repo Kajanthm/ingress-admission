@@ -51,6 +51,11 @@ func main() {
 				Usage:  "the path to a file containing the tls key `PATH`",
 				EnvVar: "TLS_KEY",
 			},
+			cli.StringSliceFlag{
+				Name:   "ignore-namespace",
+				Usage:  "a collection of namespace you can ignore the policy enforcer",
+				EnvVar: "IGNORE_NAMESPACE",
+			},
 			cli.BoolFlag{
 				Name:   "enable-http-logging",
 				Usage:  "enable http logging on the service `BOOL`",
@@ -63,10 +68,11 @@ func main() {
 
 			// @step: create the controller
 			ctl, err := newController(Config{
-				EnableLogging: c.Bool("enable-logging"),
-				Listen:        c.String("listen"),
-				TLSCert:       c.String("tls-cert"),
-				TLSKey:        c.String("tls-key"),
+				EnableLogging:    c.Bool("enable-logging"),
+				IgnoreNamespaces: c.StringSlice("ignore-namespace"),
+				Listen:           c.String("listen"),
+				TLSCert:          c.String("tls-cert"),
+				TLSKey:           c.String("tls-key"),
 			})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "[error] unable to initialize controller, %s", err)

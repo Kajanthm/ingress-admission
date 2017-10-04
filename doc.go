@@ -36,6 +36,8 @@ type Config struct {
 	EnableClientTLS bool `yaml:"enable-client-tls"`
 	// EnableLogging indicates you want http logging
 	EnableLogging bool `yaml:"enable-logging"`
+	// IgnoreNamespaces
+	IgnoreNamespaces []string `yaml:"ignore-namespaces"`
 	// Listen is the interface we are listening on
 	Listen string `yaml:"listen"`
 	// TLSCert is the path to a certificate

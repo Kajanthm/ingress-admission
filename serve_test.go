@@ -108,6 +108,53 @@ func TestWhitelistEmpty(t *testing.T) {
 	c.runTests(t, requests)
 }
 
+func TestIgnoredNamespace(t *testing.T) {
+	c := newFakeController()
+	c.service.config.IgnoreNamespaces = []string{"test"}
+	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	})
+	requests := []request{
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview("rohith.test.svc.cluster.local"),
+			ExpectedStatus:  &admission.AdmissionReviewStatus{Allowed: true},
+			ExpectedCode:    http.StatusOK,
+		},
+	}
+	c.runTests(t, requests)
+}
+
+func TestIgnoredNamespaceBad(t *testing.T) {
+	c := newFakeController()
+	c.service.config.IgnoreNamespaces = []string{"other_namespae"}
+	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	})
+	requests := []request{
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview("rohith.test.svc.cluster.local"),
+			ExpectedStatus: &admission.AdmissionReviewStatus{
+				Result: &metav1.Status{
+					Code:    http.StatusForbidden,
+					Message: "namespace has no whitelist annotation: ingress-admission.acp.homeoffice.gov.uk/domains",
+					Reason:  metav1.StatusReasonForbidden,
+					Status:  metav1.StatusFailure,
+				},
+			},
+			ExpectedCode: http.StatusOK,
+		},
+	}
+	c.runTests(t, requests)
+}
+
 func TestNamespaceWhitelist(t *testing.T) {
 	c := newFakeController()
 	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{
@@ -147,7 +194,6 @@ func TestNamespaceWhitelist(t *testing.T) {
 		},
 	}
 	c.runTests(t, requests)
-
 }
 
 func TestVersionHandler(t *testing.T) {
