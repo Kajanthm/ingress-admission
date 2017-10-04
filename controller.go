@@ -71,6 +71,18 @@ func (c *controller) admit(review *admission.AdmissionReview) error {
 			return false, fmt.Sprintf("unable to decode ingress spec: %s", err)
 		}
 
+		// @check if this namesapce is being ignored
+		for _, x := range c.config.IgnoreNamespaces {
+			if x == review.Spec.Namespace {
+				log.WithFields(log.Fields{
+					"name":      review.Spec.Name,
+					"namespace": review.Spec.Namespace,
+				}).Info("ignoring the policy enforcement on this namespace")
+
+				return true, ""
+			}
+		}
+
 		// @check the domain being requested it whitelisted on the namespace
 		namespace, err := c.client.CoreV1().Namespaces().Get(review.Spec.Namespace, metav1.GetOptions{})
 		if err != nil {
