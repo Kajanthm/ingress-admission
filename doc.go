@@ -25,7 +25,7 @@ const (
 
 var (
 	// Version is the version of the service
-	Version = "v0.0.1"
+	Version = "v0.0.2"
 	// GitSHA is the git sha this was built off
 	GitSHA = "unknown"
 )
