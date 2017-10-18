@@ -12,6 +12,8 @@ import (
 // e.g hostname.namespace.svc.cluster.local or *.namespace.svc.cluster.local
 func hasDomain(hostname string, whitelist []string) bool {
 	for _, domain := range whitelist {
+		// @step: we need to remove whitelist
+		domain = strings.Replace(domain, " ", "", -1)
 		wildcard := strings.HasPrefix(domain, "*.")
 		switch wildcard {
 		case true:
