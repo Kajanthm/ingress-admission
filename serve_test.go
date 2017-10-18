@@ -155,6 +155,26 @@ func TestIgnoredNamespaceBad(t *testing.T) {
 	c.runTests(t, requests)
 }
 
+func TestMultilistWhitelist(t *testing.T) {
+	c := newFakeController()
+	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test",
+			Annotations: map[string]string{DomainWhitelistAnnotation: "nope.test.svc.cluster.local, nope2.test.svc.cluster.local, rohith.test.svc.cluster.local"},
+		},
+	})
+	requests := []request{
+		{
+			URI:             "/",
+			Method:          http.MethodPost,
+			AdmissionReview: createFakeIngressReview("rohith.test.svc.cluster.local"),
+			ExpectedStatus:  &admission.AdmissionReviewStatus{Allowed: true},
+			ExpectedCode:    http.StatusOK,
+		},
+	}
+	c.runTests(t, requests)
+}
+
 func TestNamespaceWhitelist(t *testing.T) {
 	c := newFakeController()
 	c.service.client.CoreV1().Namespaces().Create(&api.Namespace{

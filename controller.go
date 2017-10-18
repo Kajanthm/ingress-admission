@@ -95,20 +95,20 @@ func (c *controller) admit(review *admission.AdmissionReview) error {
 		}
 
 		// @check the annotation exists on the namespace
-		whitelist, found := namespace.GetAnnotations()[DomainWhitelistAnnotation]
+		annotation, found := namespace.GetAnnotations()[DomainWhitelistAnnotation]
 		if !found {
 			return false, fmt.Sprintf("namespace has no whitelist annotation: %s", DomainWhitelistAnnotation)
 		}
 
 		// @check the whitelist is not empty
-		if whitelist == "" {
+		if annotation == "" {
 			return false, "namespace whitelist is empty"
 		}
-		whitelistedDomains := strings.Split(whitelist, ",")
+		whitelist := strings.Split(annotation, ",")
 
 		// @check if the hostname is covered by the whitelist
 		for _, rule := range ingress.Spec.Rules {
-			if found := hasDomain(rule.Host, whitelistedDomains); !found {
+			if found := hasDomain(rule.Host, whitelist); !found {
 				return false, fmt.Sprintf("hostname: %s is not permitted by namespace policy", rule.Host)
 			}
 		}
